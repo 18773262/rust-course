@@ -1267,7 +1267,7 @@ error[E0282]: type annotations needed
 <p>每个有符号类型规定的数字范围是 -(2<sup>n - 1</sup>) ~ 2<sup>n -
 1</sup> - 1，其中 <code>n</code> 是该定义形式的位长度。因此 <code>i8</code> 可存储数字范围是 -(2<sup>7</sup>) ~ 2<sup>7</sup> - 1，即 -128 ~ 127。无符号类型可以存储的数字范围是 0 ~ 2<sup>n</sup> - 1，所以 <code>u8</code> 能够存储的数字为 0 ~ 2<sup>8</sup> - 1，即 0 ~ 255。</p>
 <p>此外，<code>isize</code> 和 <code>usize</code> 类型取决于程序运行的计算机 CPU 类型： 若 CPU 是 32 位的，则这两个类型是 32 位的，同理，若 CPU 是 64 位，那么它们则是 64 位。</p>
-<p>整形字面量可以用下表的形式书写：</p>
+<p>整型字面量可以用下表的形式书写：</p>
 <div class="table-wrapper"><table><thead><tr><th>数字字面量</th><th>示例</th></tr></thead><tbody>
 <tr><td>十进制</td><td><code>98_222</code></td></tr>
 <tr><td>十六进制</td><td><code>0xff</code></td></tr>
@@ -1466,6 +1466,14 @@ note: run with `RUST_BACKTRACE=1` environment variable to display
     a &lt;&lt;= b;
     println!("(a &lt;&lt; b) value is {:08b}", a);
 }</code></pre></pre>
+<p>对于移位运算，Rust 会检查它是否超出该整型的位数范围，如果超出，则会报错 overflow。比如，一个 8 位的整型，如果试图移位 8 位，就会报错，但如果移位 7 位就不会。Rust 这样做的理由也很简单，如果移位太多，那么这个移位后的数字就是全 0 或者全 1，所以移位操作不如直接写 0 或者 -1，这很可能意味着这里的代码是有问题的。需要注意的是，不论 debug 模式还是 release 模式，Rust 都会检查溢出。</p>
+<pre><pre class="playground"><code class="language-rust edition2021">fn main() {
+   let a: u8 = 255;
+   let b = a&gt;&gt;7; // ok
+   let b = a&lt;&lt;7; // ok
+   let b = a&gt;&gt;8; // overflow
+   let b = a&lt;&lt;8; // overflow
+}</code></pre></pre>
 <h2 id="序列range"><a class="header" href="#序列range">序列(Range)</a></h2>
 <p>Rust 提供了一个非常简洁的方式，用来生成连续的数值，例如 <code>1..5</code>，生成从 1 到 4 的连续数字，不包含 5 ；<code>1..=5</code>，生成从 1 到 5 的连续数字，包含 5，它的用途很简单，常常用于循环中：</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -1541,7 +1549,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display
 <p>由于 <code>Unicode</code> 都是 4 个字节编码，因此字符类型也是占用 4 个字节：</p>
 <pre><pre class="playground"><code class="language-rust edition2021">fn main() {
     let x = '中';
-    println!("字符'中'占用了{}字节的内存大小",std::mem::size_of_val(&amp;x));
+    println!("字符'中'占用了{}字节的内存大小", size_of_val(&amp;x));
 }</code></pre></pre>
 <p>输出如下:</p>
 <pre><code class="language-console">$ cargo run
@@ -5101,7 +5109,7 @@ fn main() {
 <h3 id="--运算符到哪去了"><a class="header" href="#--运算符到哪去了"><code>-&gt;</code> 运算符到哪去了？</a></h3>
 <p>在 C/C++ 语言中，有两个不同的运算符来调用方法：<code>.</code> 直接在对象上调用方法，而 <code>-&gt;</code> 在一个对象的指针上调用方法，这时需要先解引用指针。换句话说，如果 <code>object</code> 是一个指针，那么 <code>object-&gt;something()</code> 和 <code>(*object).something()</code> 是一样的。</p>
 <p>Rust 并没有一个与 <code>-&gt;</code> 等效的运算符；相反，Rust 有一个叫 <strong>自动引用和解引用</strong>的功能。方法调用是 Rust 中少数几个拥有这种行为的地方。</p>
-<p>他是这样工作的：当使用 <code>object.something()</code> 调用方法时，Rust 会自动为 <code>object</code> 添加 <code>&amp;</code>、<code>&amp;mut</code> 或 <code>*</code> 以便使 <code>object</code> 与方法签名匹配。也就是说，这些代码是等价的：</p>
+<p>他是这样工作的：当使用 <code>object.something()</code> 调用方法时，Rust 会自动为 <code>object</code> 添加 <code>&amp;</code>（视可见性添加<code>&amp;mut</code>)、 <code>*</code> 以便使 <code>object</code> 与方法签名匹配。也就是说，这些代码是等价的：</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">#[derive(Debug,Copy,Clone)]
@@ -6452,7 +6460,7 @@ fn main() {
 <p>特征之于 Rust 更甚于接口之于其他语言，因此特征在 Rust 中很重要也相对较为复杂，我们决定把特征分为两篇进行介绍，<a href="https://course.rs/basic/trait/trait.html">第一篇</a>在之前已经讲过，现在就是第二篇：关于特征的进阶篇，会讲述一些不常用到但是你该了解的特性。</p>
 <h2 id="关联类型"><a class="header" href="#关联类型">关联类型</a></h2>
 <p>在方法一章中，我们讲到了<a href="https://course.rs/basic/method#%E5%85%B3%E8%81%94%E5%87%BD%E6%95%B0">关联函数</a>，但是实际上关联类型和关联函数并没有任何交集，虽然它们的名字有一半的交集。</p>
-<p>关联类型是在特征定义的语句块中，申明一个自定义类型，这样就可以在特征的方法签名中使用该类型：</p>
+<p>关联类型是在特征定义的语句块中，声明一个自定义类型，这样就可以在特征的方法签名中使用该类型：</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait Iterator {
@@ -6515,11 +6523,21 @@ fn difference&lt;A,B,C&gt;(container: &amp;C) -&gt; i32
 
 fn difference&lt;C: Container&gt;(container: &amp;C) {}
 <span class="boring">}</span></code></pre></pre>
-<h2 id="默认泛型类型参数"><a class="header" href="#默认泛型类型参数">默认泛型类型参数</a></h2>
-<p>当使用泛型类型参数时，可以为其指定一个默认的具体类型，例如标准库中的 <code>std::ops::Add</code> 特征：</p>
+<p>关联类型还可以被其它特征进行约束，例如：</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>trait Add&lt;RHS=Self&gt; {
+</span>trait Container{
+    type A：Display;
+    type B;
+    fn contains(&amp;self, a: &amp;Self::A, b: &amp;Self::B) -&gt; bool;
+}
+
+# 默认泛型类型参数
+
+当使用泛型类型参数时，可以为其指定一个默认的具体类型，例如标准库中的 `std::ops::Add` 特征：
+
+```rust
+trait Add&lt;RHS=Self&gt; {
     type Output;
 
     fn add(self, rhs: RHS) -&gt; Self::Output;
@@ -7610,7 +7628,7 @@ help: consider introducing a named lifetime parameter // 考虑引入一个生�
 </code></pre>
 <p>主要问题就在于，<code>result</code> 在函数结束后就被释放，但是在函数结束后，对 <code>result</code> 的引用依然在继续。在这种情况下，没有办法指定合适的生命周期来让编译通过，因此我们也就在 Rust 中避免了悬垂引用。</p>
 <p>那遇到这种情况该怎么办？最好的办法就是返回内部字符串的所有权，然后把字符串的所有权转移给调用者：</p>
-<pre><pre class="playground"><code class="language-rust edition2021">fn longest&lt;'a&gt;(_x: &amp;str, _y: &amp;str) -&gt; String {
+<pre><pre class="playground"><code class="language-rust edition2021">fn longest(_x: &amp;str, _y: &amp;str) -&gt; String {
     String::from("really long string")
 }
 
@@ -18210,14 +18228,26 @@ macro_rules! vec {
 <h4 id="模式解析"><a class="header" href="#模式解析">模式解析</a></h4>
 <p>而现在，我们先来简单讲解下 <code>( $( $x:expr ),* )</code> 的含义。</p>
 <p>首先，我们使用圆括号 <code>()</code> 将整个宏模式包裹其中。紧随其后的是 <code>$()</code>，跟括号中模式相匹配的值(传入的 Rust 源代码)会被捕获，然后用于代码替换。在这里，模式 <code>$x:expr</code> 会匹配任何 Rust 表达式并给予该模式一个名称：<code>$x</code>。</p>
-<p><code>$()</code> 之后的逗号说明在 <code>$()</code> 所匹配的代码的后面会有一个可选的逗号分隔符，紧随逗号之后的 <code>*</code> 说明 <code>*</code> 之前的模式会被匹配零次或任意多次(类似正则表达式)。</p>
+<p><code>$()</code> 之后的逗号说明 <code>$()</code> 所匹配的代码使用逗号分隔符分割，紧随逗号之后的 <code>*</code> 说明 <code>*</code> 之前的模式(<code>$()</code>内的部分)会被匹配零次或任意多次(类似正则表达式)(且以逗号分割)。</p>
 <p>当我们使用 <code>vec![1, 2, 3]</code> 来调用该宏时，<code>$x</code> 模式将被匹配三次，分别是 <code>1</code>、<code>2</code>、<code>3</code>。为了帮助大家巩固，我们再来一起过一下：</p>
 <ol>
 <li><code>$()</code> 中包含的是模式 <code>$x:expr</code>，该模式中的 <code>expr</code> 表示会匹配任何 Rust 表达式，并给予该模式一个名称 <code>$x</code></li>
 <li>因此 <code>$x</code> 模式可以跟整数 <code>1</code> 进行匹配，也可以跟字符串 "hello" 进行匹配: <code>vec!["hello", "world"]</code></li>
-<li><code>$()</code> 之后的逗号，意味着<code>1</code> 和 <code>2</code> 之间可以使用逗号进行分割，也意味着 <code>3</code> 既可以没有逗号，也可以有逗号：<code>vec![1, 2, 3,]</code></li>
+<li><code>$()</code> 之后的逗号，意味着 <code>1</code> 、 <code>2</code> 和 <code>3</code> 之间使用逗号进行分割</li>
 <li><code>*</code> 说明之前的模式可以出现零次也可以任意次，这里出现了三次</li>
 </ol>
+<p><strong>需要注意的是，此处简化的 <code>vec!</code> 实现中， <code>3</code> 后面是不能继续接逗号的( <code>vec![1, 2, 3]</code> 合法，但 <code>vec![1, 2, 3,]</code> 不合法)，要匹配最后一个可有可无的逗号，可参考Rust官方的 <code>vec!</code> 宏定义，关键代码如下：</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>($($x:expr),+ $(,)?) =&gt; (
+    &lt;[_]&gt;::into_vec(
+        // This rustc_box is not required, but it produces a dramatic improvement in compile
+        // time when constructing arrays with many elements.
+        #[rustc_box]
+        $crate::boxed::Box::new([$($x),+])
+    )
+);
+<span class="boring">}</span></code></pre></pre>
 <p>接下来，我们再来看看与模式相关联、在 <code>=&gt;</code> 之后的代码：</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -30741,7 +30771,7 @@ fn on_record(
 <li><a href="https://doc.rust-lang.org/std/primitive.str.html#method.to_lowercase"><code>str::to_lowercase()</code></a> 在调用过程中会遍历字符串的字符，且可能会分配新的内存对象。输入是一个借用的 <code>str</code>，输出是一个有独立所有权的 <code>String</code></li>
 <li><a href="https://doc.rust-lang.org/std/string/struct.String.html#method.into_bytes"><code>String::into_bytes()</code></a> 返回 <code>String</code> 底层的 <code>Vec&lt;u8&gt;</code> 数组，转换本身是零消耗的。该方法获取 <code>String</code> 的所有权，然后返回一个新的有独立所有权的 <code>Vec&lt;u8&gt;</code></li>
 </ul>
-<p>当一个单独的值被某个类型所包装时，访问该类型的内部值应通过 <code>into_inner()</code> 方法来访问。例如将一个缓冲区值包装为 <a href="https://doc.rust-lang.org/std/io/struct.BufReader.html#method.into_inner"><code>BufReader</code></a> 类型，还有 <a href="https://docs.rs/flate2/0.2.19/flate2/read/struct.GzDecoder.html#method.into_inner"><code>GzDecoder</code></a>、<a href="https://doc.rust-lang.org/std/sync/atomic/struct.AtomicBool.html#method.into_inner"><code>AtomicBool</code></a> 等，都是这种类型。</p>
+<p>当一个单独的值被某个类型所包装时，访问该类型的内部值应通过 <code>into_inner()</code> 方法来访问。例如将一个缓冲区值包装为 <a href="https://doc.rust-lang.org/std/io/struct.BufReader.html#method.into_inner"><code>BufReader</code></a> 类型，还有 <a href="https://starry-network.github.io/starry_node/flate2/write/struct.GzDecoder.html#method.into_inner"><code>GzDecoder</code></a>、<a href="https://doc.rust-lang.org/std/sync/atomic/struct.AtomicBool.html#method.into_inner"><code>AtomicBool</code></a> 等，都是这种类型。</p>
 <p>如果 <code>mut</code> 限定符在返回类型中出现，那么在命名上也<strong>应该</strong>体现出来。例如，<a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#method.as_mut_slice"><code>Vec::as_mut_slice</code></a> 就说明它返回了一个 <code>mut</code> 切片，在这种情况下 <code>as_mut_slice</code> 比 <code>as_slice_mut</code> 更适合。</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
