@@ -198,6 +198,18 @@
 <p><strong>Linux 下：</strong></p>
 <p>Linux 用户一般应按照相应发行版的文档来安装 <code>GCC</code> 或 <code>Clang</code>。</p>
 <p>例如，如果你使用 Ubuntu，则可安装 <code>build-essential</code>。</p>
+<h2 id="在-freebsd-上安装-rustup"><a class="header" href="#在-freebsd-上安装-rustup">在 FreeBSD 上安装 <code>rustup</code></a></h2>
+<ul>
+<li>使用 pkg 安装：</li>
+</ul>
+<pre><code class="language-sh"># pkg install rustup-init
+</code></pre>
+<ul>
+<li>使用 Ports 安装：</li>
+</ul>
+<pre><code class="language-sh"># cd /usr/ports/devel/rustup-init/ 
+# make install clean
+</code></pre>
 <h2 id="在-windows-上安装-rustup"><a class="header" href="#在-windows-上安装-rustup">在 Windows 上安装 <code>rustup</code></a></h2>
 <p>Windows 上安装 Rust 需要有 <code>C++</code> 环境，以下为安装的两种方式：</p>
 <p><strong>1. <code>x86_64-pc-windows-msvc</code>（官方推荐）</strong></p>
